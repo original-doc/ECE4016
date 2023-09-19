@@ -47,7 +47,7 @@ class DNSserver:
         self.sock.bind((self.ip, self.port))
         self.sock.listen()
         self.cache = {}
-        self.flag = 0
+        self.flag = 1
 
     def listen_query(self):
         while True:
@@ -74,7 +74,11 @@ class DNSserver:
         list_qname.reverse()
         for i in range(len(list_qname)):
             list_qname[i] = list_qname[i] + "."
-        response = self.ask_dns(self, list_qname, q_data)
+        if (self.flag == 1):
+            response = self.ask_dns(self, list_qname, q_data)
+        else:
+            response = self.ask_publiccdns(self, q_data)
+        
         self.cache[q_data.q.qname] = response.pack
 
         return response
@@ -98,7 +102,7 @@ class DNSserver:
 
         domain = ""
         a_dns = "A.root-servers.net"
-    
+        response = None
         for i in list_qname:
             domain = i + domain
             request = DNSRecord.question(domain, qtype="NS")
@@ -123,7 +127,22 @@ class DNSserver:
 
         return response
 
+    def ask_publiccdns(self, q_data):
+        public_dns = [
+            "119.29.29.29",#tencent
+            "8.8.8.8",#google
+            "223.5.5.5",#aliyun
+            "180.76.76.76",#baidu
+        ]
 
+        a_dns = public_dns[0]
+        qname = q_data.q.qname
+        r = DNSRecord.question(qname, qtype="A")
+        rr = r.send(a_dns)
+        response1 = DNSRecord.parse(rr)
+
+        return response1
+    
 if __name__ == "__main__":
     dns = DNSserver()
     dns.listen_query()
