@@ -82,32 +82,56 @@ class dnserver:
             request = DNSRecord.question(domain, qtype="NS")
             rr = request.send(a_dns)
             response = DNSRecord.parse(rr)
-            print(response)
+            print(response.rr)
+            for rr in response.rr:
+                tmp = rr.rdata.label
+                print(tmp)
+                if tmp.find("ns"):
+                    a_dns = response.auth[0].rdata.__str__()
+                    temp = DNSRecord.question(data.q.qname, qtype="A")
+                    rr = temp.send(a_dns)
+                    response = DNSRecord.parse(rr)
+                    break
+
             if (len(response.auth) >= 1):
                 a_dns = response.auth[0].rdata.__str__()#for the next dns server to do iterative query
             else:
+                '''
                 if (domain == qname):
                     a = DNSRecord.question(domain, qtype="A")
                     rr = a.send(a_dns)
                     response = DNSRecord.parse(rr)
                     a_dns = str(response.rr[0].rdata)
 
+
+                if any(rr.rdata.label == QTYPE.SOA for rr in response.rr):
+                    a_dns = rr.rdata.label
+                    
+                    temp = DNSRecord.question(data.q.qname, qtype="A")
+                    rr = temp.send(a_dns)
+                    response = DNSRecord.parse(rr)
+                    print("SOA: ___________________")
+                    print(response)
+                    break
                 else:
                     continue
+                '''
                 break
             #print(a_dns)
+        '''
         changename = DNSRecord.question(data.q.qname, qtype="A")
-        changename.add_answer(response.rr[0])
+        changename.add_answer(response.rr)
         changename.header.id = data.header.id
         pack_c = changename.pack()
+        '''
         #print(response)
-        #response.header.id = data.header.id
+        response.header.id = data.header.id
         
-        #print(response)
-        #pack_r = response.pack()
+        print(response)
+        pack_r = response.pack()
         #print(pack_r)
-        self.sock.sendto(pack_c, clientaddr)
-        self.update_cache(data.q.qname, changename)
+        self.sock.sendto(pack_r, clientaddr)
+        self.update_cache(data.q.qname, response)
         print("The servers pass-by during iterative query for cname: ")
         for i in range(len(server_passby)):
             print(server_passby[i])
