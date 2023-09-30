@@ -59,6 +59,7 @@ class dnserver:
         self.sock.sendto(test, clientaddr)
 
     def handlecname(self, cname, data, clientaddr):
+        signaltop = False
         root_server = [
             '198.41.0.4'#A.root
         ]
@@ -78,21 +79,59 @@ class dnserver:
         for i in list_qname:
             server_passby.append(a_dns)
             domain = i + domain
-            #print(domain)
+            print(domain)
             request = DNSRecord.question(domain, qtype="NS")
             rr = request.send(a_dns)
             response = DNSRecord.parse(rr)
             print(response.rr)
-            for rr in response.rr:
-                tmp = rr.rdata.label
-                print(tmp)
-                if tmp.find("ns"):
-                    a_dns = response.auth[0].rdata.__str__()
-                    temp = DNSRecord.question(data.q.qname, qtype="A")
+            for rr in response.auth:
+                try:
+                    tmp = rr.rdata.label
+                except:
+                    tmp = rr.rdata
+                print("rrlabel: _______", tmp)
+                judge = str(tmp).count("ns1.a")
+                if judge:
+                    print("judged packet:_____________", response)
+                    a_dns = rr.rdata.__str__()
+                    for rr in response.ar:
+                        if str(rr).count(a_dns):
+                            a_dns = str(rr.rdata)
+                    print("A_DNS: ", a_dns)
+                    #temp = DNSRecord.question(data.q.qname, qtype="A")
+                    temp = DNSRecord.question(cname, qtype="A")
+                    print("CNAME: _______", cname)
                     rr = temp.send(a_dns)
                     response = DNSRecord.parse(rr)
-                    break
+                    response.header.id = data.header.id
+                    signaltop = True
+        
+                    print(response)
+                    response.add_answer()
+                    #data.add_answer(response.a[0])
+                    #pack_d = data.pack()
+                    pack_r = response.pack()
+                    #print(pack_r)
+                    #self.sock.sendto(pack_d, clientaddr)
+                    #self.update_cache(data.q.qname, data)
 
+                    ans = DNSRecord.question(data.q.qname, qtype="A")
+                    ans.header.id = data.header.id
+                    ans.rr = response.rr
+                    ans.auth = response.auth
+                    ans.ar = response.ar
+                    pa = ans.pack()
+                    self.sock.sendto(pa, clientaddr)
+                    self.update_cache(data.q.qname, ans)
+
+                    #self.sock.sendto(pack_r, clientaddr)
+                    #self.update_cache(data.q.qname, response)
+                    print("The servers pass-by during iterative query for cname: ")
+                    for i in range(len(server_passby)):
+                        print(server_passby[i])
+                    break
+            if signaltop:
+                break
             if (len(response.auth) >= 1):
                 a_dns = response.auth[0].rdata.__str__()#for the next dns server to do iterative query
             else:
@@ -169,7 +208,7 @@ class dnserver:
                     #if (response.get_a is None):
                         for rr in response.rr:
                             if (rr.rtype == QTYPE.CNAME):
-                                cname = rr.rdata.label
+                                cname = str(rr.rdata.label)
                                 self.handlecname(cname, data, clientaddr)
                                 break
                     
