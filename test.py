@@ -90,7 +90,9 @@ class dnserver:
                 except:
                     tmp = rr.rdata
                 print("rrlabel: _______", tmp)
-                judge = str(tmp).count("ns1.a")
+
+                judge = str(tmp).count("ns1."+list_qname[-2])
+                print("ns1."+list_qname[-2])
                 if judge:
                     print("judged packet:_____________", response)
                     a_dns = rr.rdata.__str__()
@@ -210,6 +212,7 @@ class dnserver:
                 print("ask A:___", response)
                 a_dns = str(response.rr[0].rdata)
                 break
+
             request = DNSRecord.question(domain, qtype="NS")
             rr = request.send(a_dns)
             response = DNSRecord.parse(rr)
