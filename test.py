@@ -57,15 +57,37 @@ class dnserver:
         self.update_cache(qname, ans)
         print(ans)
         self.sock.sendto(test, clientaddr)
+    
+    def extract_add_RR(self, source, dest, domain, cname):
+        for rr in source.rr:
+            rtype = rr.rtype
+            ttl = rr.ttl
+            rdata = str(rr.rdata.label)
+            #print("rr: _", type(rr), rr, "rtype:__", type(rtype), rtype, "ttl:__",type(ttl), ttl, "rdata:__", type(rdata), rdata)
+            #newRR = RR(domain, rtype, cname, ttl)
+            dest.add_answer(rr)
 
-    def handlecname(self, cname, data, clientaddr):
+
+    def handlecname(self, cname, data, clientaddr,pre_response):
         signaltop = False
         root_server = [
-            '198.41.0.4'#A.root
+            '198.41.0.4',#A.root
+            '192.228.79.201',#B.root
+            '192.33.4.12',#C.root
+            '128.8.10.90',#D.root
+            '192.203.230.10',#E.root
+            '192.5.5.241',#F.root
+            '192.112.36.4',#G.root
+            '128.63.2.53',#H.root
+            '192.36.148.17',#I.root
+            '192.58.128.30',#J.root
+            '193.0.14.129',#K.root
+            '198.32.64.12',#L.root
+            '202.12.27.33',#M.root
         ]
 
         domain = ""
-        a_dns = root_server[0]
+        a_dns = root_server[2]
         qname = cname
         list_qname = str(qname).split('.')
         list_qname.reverse()
@@ -79,30 +101,32 @@ class dnserver:
         for i in list_qname:
             server_passby.append(a_dns)
             domain = i + domain
-            print(domain)
+            print("-----------------")
+            print("domain in qery: ", domain)
+            print("-----------------")
             request = DNSRecord.question(domain, qtype="NS")
             rr = request.send(a_dns)
             response = DNSRecord.parse(rr)
-            print(response.rr)
+            print(response)
             for rr in response.auth:
                 try:
                     tmp = rr.rdata.label
                 except:
                     tmp = rr.rdata
-                print("rrlabel: _______", tmp)
+                #print("rrlabel: _______", tmp)
 
                 judge = str(tmp).count("ns1."+list_qname[-2])
-                print("ns1."+list_qname[-2])
+                #print("ns1."+list_qname[-2])
                 if judge:
-                    print("judged packet:_____________", response)
+                    #print("judged packet:_____________", response)
                     a_dns = rr.rdata.__str__()
                     for rr in response.ar:
                         if str(rr).count(a_dns):
                             a_dns = str(rr.rdata)
-                    print("A_DNS: ", a_dns)
+                    #print("A_DNS: ", a_dns)
                     #temp = DNSRecord.question(data.q.qname, qtype="A")
                     temp = DNSRecord.question(cname, qtype="A")
-                    print("CNAME: _______", cname)
+                    #print("CNAME: _______", cname)
                     rr = temp.send(a_dns)
                     response = DNSRecord.parse(rr)
                     response.header.id = data.header.id
@@ -122,6 +146,8 @@ class dnserver:
                     ans.rr = response.rr
                     ans.auth = response.auth
                     ans.ar = response.ar
+                    pre_domain = pre_response.q.qname
+                    self.extract_add_RR(pre_response, ans, pre_domain, cname)
                     pa = ans.pack()
                     self.sock.sendto(pa, clientaddr)
                     self.update_cache(data.q.qname, ans)
@@ -180,11 +206,23 @@ class dnserver:
 
     def ask_dns(self, data, clientaddr):
         root_server = [
-            '198.41.0.4'#A.root
+            '198.41.0.4',#A.root
+            '192.228.79.201',#B.root
+            '192.33.4.12',#C.root
+            '128.8.10.90',#D.root
+            '192.203.230.10',#E.root
+            '192.5.5.241',#F.root
+            '192.112.36.4',#G.root
+            '128.63.2.53',#H.root
+            '192.36.148.17',#I.root
+            '192.58.128.30',#J.root
+            '193.0.14.129',#K.root
+            '198.32.64.12',#L.root
+            '202.12.27.33',#M.root
         ]
 
         domain = ""
-        a_dns = root_server[0]
+        a_dns = root_server[2]
         qname = data.q.qname
         list_qname = str(qname).split('.')
         list_qname.reverse()
@@ -198,7 +236,9 @@ class dnserver:
         for i in list_qname:
             server_passby.append(a_dns)
             domain = i + domain
-            print(domain)
+            print("-----------------")
+            print("domain in qery: ", domain)
+            print("-----------------")
             if (domain == qname):
                 
                 a = DNSRecord.question(domain, qtype="A")
@@ -207,9 +247,12 @@ class dnserver:
                 for rr in response.rr:
                     if (rr.rtype == QTYPE.CNAME):
                         cname = str(rr.rdata.label)
-                        self.handlecname(cname, data, clientaddr)
+                        #print("rr.rdata:________", rr.rdata)
+                        #print("_____response.ar_____")
+                        #print(response.rr)
+                        self.handlecname(cname, data, clientaddr, response)
                         break
-                print("ask A:___", response)
+                #print("ask A:___", response)
                 a_dns = str(response.rr[0].rdata)
                 break
 
@@ -225,7 +268,7 @@ class dnserver:
                         for rr in response.rr:
                             if (rr.rtype == QTYPE.CNAME):
                                 cname = str(rr.rdata.label)
-                                self.handlecname(cname, data, clientaddr)
+                                self.handlecname(cname, data, clientaddr, response)
                                 break
                     
 
@@ -241,7 +284,7 @@ class dnserver:
                 break
             #print(a_dns)
 
-        #print(response)
+        print(response)
         response.header.id = data.header.id
         
         #print(response)
@@ -260,9 +303,10 @@ class dnserver:
         
 
 def main():
-    print(1)
+    #print(1)
     dns = dnserver()
-    print(0)
+    #print(0)
+    print("Local DNS server starts: ")
     dns.listen_q()
 
 
