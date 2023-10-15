@@ -6,7 +6,7 @@ class dnserver:
         self.ip = "127.0.0.1"
         self.port = 1234
         self.cache = {}
-        self.flag = 0
+        self.flag = 1
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind((self.ip, self.port))
 
@@ -26,9 +26,9 @@ class dnserver:
                 pack_a = ans.pack()
                 self.sock.sendto(pack_a, clientaddr)
             else:
-                if self.flag == 1:
+                if self.flag == 0:
                     self.ask_pulicdns(data, clientaddr)
-                elif self.flag == 0:
+                elif self.flag == 1:
                     self.ask_dns(data, clientaddr)
             #self.sock.sendto(query, clientaddr)
 
