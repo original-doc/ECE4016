@@ -162,6 +162,7 @@ class dnserver:
                 break
             if (len(response.auth) >= 1):
                 a_dns = response.auth[0].rdata.__str__()#for the next dns server to do iterative query
+                server_passby.append(response.ar[0].rdata.__str__())
             else:
                 '''
                 if (domain == qname):
@@ -234,7 +235,7 @@ class dnserver:
         #print(list_qname)
         server_passby = []
         for i in list_qname:
-            server_passby.append(a_dns)
+            server_passby.append(a_dns)#name of server passby
             domain = i + domain
             print("-----------------")
             print("domain in qery: ", domain)
@@ -262,6 +263,8 @@ class dnserver:
             print(response)
             if (len(response.auth) >= 1):
                 a_dns = response.auth[0].rdata.__str__()#for the next dns server to do iterative query
+                server_passby.append(response.ar[0].rdata.__str__())#ip of the server passby
+                
             else:
                 if (domain == qname):
                     #if (response.get_a is None):
@@ -276,7 +279,7 @@ class dnserver:
                         a = DNSRecord.question(domain, qtype="A")
                         rr = a.send(a_dns)
                         response = DNSRecord.parse(rr)
-                        print("ask A:___", response)
+                        #print("ask A:___", response)
                         a_dns = str(response.rr[0].rdata)
                         break
                 else:
