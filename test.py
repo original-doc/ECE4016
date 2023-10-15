@@ -58,7 +58,7 @@ class dnserver:
         print(ans)
         self.sock.sendto(test, clientaddr)
     
-    def extract_add_RR(self, source, dest, domain, cname):
+    def extract_add_RR(self, source, dest):
         for rr in source.rr:
             rtype = rr.rtype
             ttl = rr.ttl
@@ -147,7 +147,7 @@ class dnserver:
                     ans.auth = response.auth
                     ans.ar = response.ar
                     pre_domain = pre_response.q.qname
-                    self.extract_add_RR(pre_response, ans, pre_domain, cname)
+                    self.extract_add_RR(pre_response, ans)
                     pa = ans.pack()
                     self.sock.sendto(pa, clientaddr)
                     self.update_cache(data.q.qname, ans)
@@ -162,7 +162,10 @@ class dnserver:
                 break
             if (len(response.auth) >= 1):
                 a_dns = response.auth[0].rdata.__str__()#for the next dns server to do iterative query
-                server_passby.append(response.ar[0].rdata.__str__())
+                try:
+                    server_passby.append(response.ar[0].rdata.__str__())
+                except:
+                    pass
             else:
                 '''
                 if (domain == qname):
@@ -263,8 +266,10 @@ class dnserver:
             print(response)
             if (len(response.auth) >= 1):
                 a_dns = response.auth[0].rdata.__str__()#for the next dns server to do iterative query
-                server_passby.append(response.ar[0].rdata.__str__())#ip of the server passby
-                
+                try:
+                    server_passby.append(response.ar[0].rdata.__str__())#ip of the server passby
+                except:
+                    pass
             else:
                 if (domain == qname):
                     #if (response.get_a is None):
